@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "repeated-gesture-detector"
-version = "1.0.0"
+version = "1.1.0"
 description = "Flag frequently repeated physical actions using an editable gesture-pattern catalog."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,4 +35,3 @@ omit = ["src/*/__main__.py"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=repeated_gesture_detector --cov-branch --cov-report=term-missing --cov-fail-under=90"
-
