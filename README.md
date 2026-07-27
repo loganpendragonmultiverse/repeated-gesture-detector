@@ -12,7 +12,7 @@ repeated-gestures examples/sample.json
 repeated-gestures examples/sample.json --format json --output report.json
 ```
 
-The example documents the complete v1 input shape. Markdown is intended for immediate review; JSON preserves structured evidence for scripts and later comparison. An existing output file is never overwritten.
+The example documents the complete input shape. Reports now include short source-line context, counts grouped beneath Markdown headings, and a warning when the same literal phrase appears under multiple gesture categories. Markdown is intended for immediate review; JSON preserves structured evidence for scripts and later comparison. An existing output file is never overwritten.
 
 ## Privacy and platforms
 
@@ -35,6 +35,6 @@ pytest
 python -m build
 ```
 
-The project is feature-complete for its documented v1 scope. Maintenance focuses on correctness, security, compatibility, and well-supported input improvements.
+Version 1.1 adds contextual evidence, section-level totals, and overlapping-catalog diagnostics. Maintenance focuses on correctness, security, compatibility, and well-supported input improvements.
 
 Part of the [Logan Pendragon Forge open-source collection](https://www.loganpendragonforge.com/open-source/). Licensed under the [MIT License](LICENSE).
