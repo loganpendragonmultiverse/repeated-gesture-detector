@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2026-10-16
+
+- Added nearby gesture clusters.
+- Preserved legacy defaults and added synthetic boundary and compatibility tests.
+
 ## 1.1.0 - 2026-07-27
 
 - Added short source-line context and Markdown-section names to occurrence evidence.

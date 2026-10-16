@@ -38,3 +38,13 @@ python -m build
 Version 1.1 adds contextual evidence, section-level totals, and overlapping-catalog diagnostics. Maintenance focuses on correctness, security, compatibility, and well-supported input improvements.
 
 Part of the [Logan Pendragon Forge open-source collection](https://www.loganpendragonforge.com/open-source/). Licensed under the [MIT License](LICENSE).
+
+## Version 1.2.0: nearby gesture clusters
+
+Set `include_occurrence_spans` to `true` to add half-open character `span` coordinates in the original text to reported occurrences. Set `word_window` to a nonnegative integer to add `proximity_clusters`: connected runs of the same gesture whose adjacent occurrence starts are at most that many word tokens apart. A cluster must meet the existing `minimum`; global `flagged` counts retain their original meaning. Clusters never cross Markdown heading boundaries, even when heading labels repeat. Cluster occurrences include source spans, zero-based `word_index`, and one-based `section_start_line`. Word tokens use Unicode word boundaries; headings also count as tokens. Different overlapping catalog phrases remain separate literal matches. Clusters sort by first source position then gesture, with occurrence ties ordered by end position. Default counts, occurrence ordering and literal matching are unchanged.
+
+Try the synthetic example:
+
+```bash
+repeated-gestures examples/feature.json --format json
+```
