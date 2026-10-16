@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from bisect import bisect_right
 from collections import Counter
 from typing import Any
 
@@ -17,6 +18,15 @@ def _require(data: dict[str, Any], key: str) -> Any:
 
 def _gestures(data: dict[str, Any]) -> dict[str, Any]:
     text = str(_require(data, "text"))
+    include_spans = data.get("include_occurrence_spans", False)
+    if not isinstance(include_spans, bool):
+        raise TypeError("include_occurrence_spans must be a boolean")
+    window = data.get("word_window")
+    if window is not None and (
+        isinstance(window, bool) or not isinstance(window, int) or window < 0
+    ):
+        raise ValueError("word_window must be a nonnegative integer")
+    word_ends = [match.end() for match in re.finditer(r"\b\w+\b", text)]
     minimum = data.get("minimum", 2)
     if not isinstance(minimum, int) or minimum < 1:
         raise ValueError("minimum must be a positive integer")
@@ -59,6 +69,7 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
         return next(name for start, name in reversed(headings) if start <= line)
 
     occurrences = []
+    located: list[dict[str, Any]] = []
     for gesture, patterns in normalized.items():
         for pattern in patterns:
             for match in re.finditer(f"(?<!\\w){re.escape(pattern)}(?!\\w)", text, re.IGNORECASE):
@@ -73,18 +84,59 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
                         "context": context[:157] + "..." if len(context) > 160 else context,
                     }
                 )
+                if include_spans or window is not None:
+                    span = {"start": match.start(), "end": match.end()}
+                    if include_spans:
+                        occurrences[-1]["span"] = span
+                    located.append(
+                        {
+                            **occurrences[-1],
+                            "span": span,
+                            "word_index": bisect_right(word_ends, match.start()),
+                            "section_start_line": next(
+                                start for start, _ in reversed(headings) if start <= line
+                            ),
+                        }
+                    )
     counts = Counter(item["gesture"] for item in occurrences)
     flagged = {key: value for key, value in counts.items() if value >= minimum}
     section_counts: dict[str, Counter[str]] = {}
     for item in occurrences:
         section_counts.setdefault(str(item["section"]), Counter())[str(item["gesture"])] += 1
-    return {
+    report = {
         "minimum": minimum,
         "flagged": dict(sorted(flagged.items(), key=lambda pair: (-pair[1], pair[0]))),
         "sections": {section: dict(counts) for section, counts in section_counts.items()},
         "catalog_warnings": catalog_warnings,
         "occurrences": [item for item in occurrences if item["gesture"] in flagged],
     }
+
+    if window is not None:
+        clusters: list[dict[str, Any]] = []
+        for gesture in normalized:
+            candidates = sorted(
+                (item for item in located if item["gesture"] == gesture),
+                key=lambda item: (item["span"]["start"], item["span"]["end"]),
+            )
+            # Connected runs use the distance between adjacent occurrence starts.
+            runs: list[list[dict[str, Any]]] = []
+            for item in candidates:
+                if (
+                    not runs
+                    or item["section_start_line"] != runs[-1][-1]["section_start_line"]
+                    or item["word_index"] - runs[-1][-1]["word_index"] > window
+                ):
+                    runs.append([])
+                runs[-1].append(item)
+            for run in runs:
+                if len(run) >= minimum:
+                    clusters.append({"gesture": gesture, "count": len(run), "occurrences": run})
+        clusters.sort(
+            key=lambda cluster: (cluster["occurrences"][0]["span"]["start"], cluster["gesture"])
+        )
+        report["word_window"] = window
+        report["proximity_clusters"] = clusters
+    return report
 
 
 def analyze(data: dict[str, Any]) -> dict[str, Any]:
