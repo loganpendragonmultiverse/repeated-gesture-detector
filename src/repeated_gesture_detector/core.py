@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from bisect import bisect_right
 from collections import Counter
 from typing import Any
 
@@ -25,7 +26,7 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
         isinstance(window, bool) or not isinstance(window, int) or window < 0
     ):
         raise ValueError("word_window must be a nonnegative integer")
-    word_starts = [match.start() for match in re.finditer(r"\b\w+\b", text)]
+    word_ends = [match.end() for match in re.finditer(r"\b\w+\b", text)]
     minimum = data.get("minimum", 2)
     if not isinstance(minimum, int) or minimum < 1:
         raise ValueError("minimum must be a positive integer")
@@ -84,8 +85,6 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
                     }
                 )
                 if include_spans or window is not None:
-                    from bisect import bisect_right
-
                     span = {"start": match.start(), "end": match.end()}
                     if include_spans:
                         occurrences[-1]["span"] = span
@@ -93,7 +92,7 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
                         {
                             **occurrences[-1],
                             "span": span,
-                            "word_index": max(0, bisect_right(word_starts, match.start()) - 1),
+                            "word_index": bisect_right(word_ends, match.start()),
                             "section_start_line": next(
                                 start for start, _ in reversed(headings) if start <= line
                             ),

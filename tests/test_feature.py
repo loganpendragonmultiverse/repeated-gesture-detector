@@ -58,3 +58,45 @@ def test_invalid_spans_and_no_clusters():
     with pytest.raises(TypeError, match="boolean"):
         analyze({"text": "sighed", "include_occurrence_spans": 1})
     assert analyze({"text": "quiet day", "word_window": 0})["proximity_clusters"] == []
+
+
+@pytest.mark.parametrize("prefix", ["", "é ", "a\r\n"])
+def test_punctuation_leading_phrases_have_distinct_word_coordinates(prefix):
+    text = prefix + "(nod) (nod)"
+    data = {"text": text, "gestures": {"nod": ["(nod)"]}, "minimum": 2}
+    baseline = analyze(data)
+    assert analyze({**data, "word_window": 0})["proximity_clusters"] == []
+    result = analyze({**data, "word_window": 1})
+    cluster = result.pop("proximity_clusters")[0]
+    assert [item["word_index"] for item in cluster["occurrences"]] == (
+        [0, 1] if not prefix else [1, 2]
+    )
+    for item in cluster["occurrences"]:
+        span = item["span"]
+        assert text[span["start"] : span["end"]] == "(nod)"
+    result.pop("word_window")
+    assert result == baseline
+
+
+@pytest.mark.parametrize(
+    "text,indices",
+    [
+        ("! a ! b !", [0, 1, 2]),
+        ("! !", [0, 0]),
+        ("a ! !", [1, 1]),
+        ("! é ! b !", [0, 1, 2]),
+    ],
+)
+def test_punctuation_only_gap_coordinates_and_zero_window_boundary(text, indices):
+    data = {"text": text, "gestures": {"mark": ["!"]}, "minimum": 2}
+    cluster = analyze({**data, "word_window": 1})["proximity_clusters"][0]
+    assert [item["word_index"] for item in cluster["occurrences"]] == indices
+    zero_clusters = analyze({**data, "word_window": 0})["proximity_clusters"]
+    assert [item["count"] for item in zero_clusters] == ([2] if len(set(indices)) == 1 else [])
+
+
+def test_punctuation_catalog_retains_literal_word_boundaries():
+    data = {"text": "a! !b", "gestures": {"mark": ["!"]}, "minimum": 1}
+    report = analyze({**data, "word_window": 0})
+    assert report["flagged"] == {}
+    assert report["proximity_clusters"] == []

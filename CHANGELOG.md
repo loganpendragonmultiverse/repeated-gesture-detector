@@ -3,6 +3,7 @@
 ## 1.2.0 - 2026-10-16
 
 - Added nearby gesture clusters.
+- Count completed word tokens for occurrence coordinates, including punctuation-leading and punctuation-only phrases.
 - Preserved legacy defaults and added synthetic boundary and compatibility tests.
 
 ## 1.1.0 - 2026-07-27
