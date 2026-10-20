@@ -9,15 +9,10 @@ from typing import Any
 PROJECT = "repeated-gesture-detector"
 
 
-def _require(data: dict[str, Any], key: str) -> Any:
-    value = data.get(key)
-    if value is None or value == "" or value == []:
-        raise ValueError(f"{key} is required")
-    return value
-
-
 def _gestures(data: dict[str, Any]) -> dict[str, Any]:
-    text = str(_require(data, "text"))
+    text = data.get("text")
+    if not isinstance(text, str) or not text:
+        raise ValueError("text must be a non-empty string")
     include_spans = data.get("include_occurrence_spans", False)
     if not isinstance(include_spans, bool):
         raise TypeError("include_occurrence_spans must be a boolean")
@@ -28,25 +23,34 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("word_window must be a nonnegative integer")
     word_ends = [match.end() for match in re.finditer(r"\b\w+\b", text)]
     minimum = data.get("minimum", 2)
-    if not isinstance(minimum, int) or minimum < 1:
+    if isinstance(minimum, bool) or not isinstance(minimum, int) or minimum < 1:
         raise ValueError("minimum must be a positive integer")
-    gestures = data.get("gestures") or {
-        "sigh": ["sighed", "sighs", "sighing"],
-        "nod": ["nodded", "nods", "nodding"],
-        "shrug": ["shrugged", "shrugs", "shrugging"],
-        "crossed arms": ["crossed his arms", "crossed her arms", "crossed their arms"],
-    }
+    gestures = data.get(
+        "gestures",
+        {
+            "sigh": ["sighed", "sighs", "sighing"],
+            "nod": ["nodded", "nods", "nodding"],
+            "shrug": ["shrugged", "shrugs", "shrugging"],
+            "crossed arms": ["crossed his arms", "crossed her arms", "crossed their arms"],
+        },
+    )
     if not isinstance(gestures, dict) or not gestures:
         raise ValueError("gestures must be a non-empty object")
     phrase_categories: dict[str, list[str]] = {}
     normalized: dict[str, list[str]] = {}
     for raw_gesture, raw_patterns in gestures.items():
-        gesture = str(raw_gesture).strip()
+        if not isinstance(raw_gesture, str):
+            raise TypeError("gesture labels must be strings")
+        gesture = raw_gesture.strip()
+        if gesture in normalized:
+            raise ValueError("gesture labels must be unique after trimming")
         if not gesture or not isinstance(raw_patterns, list) or not raw_patterns:
             raise ValueError("each gesture must have a non-empty phrase list")
         patterns: list[str] = []
         for raw_pattern in raw_patterns:
-            pattern = str(raw_pattern).strip()
+            if not isinstance(raw_pattern, str):
+                raise TypeError("gesture phrases must be strings")
+            pattern = raw_pattern.strip()
             if not pattern:
                 raise ValueError("gesture phrases cannot be empty")
             if pattern.casefold() not in {item.casefold() for item in patterns}:
@@ -60,6 +64,9 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
     ]
     headings: list[tuple[int, str]] = [(1, "(document)")]
     source_lines = text.splitlines()
+    line_starts = [0]
+    for source_line in text.splitlines(keepends=True):
+        line_starts.append(line_starts[-1] + len(source_line))
     for line_number, line_text in enumerate(source_lines, start=1):
         heading = re.match(r"^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$", line_text)
         if heading:
@@ -73,7 +80,7 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
     for gesture, patterns in normalized.items():
         for pattern in patterns:
             for match in re.finditer(f"(?<!\\w){re.escape(pattern)}(?!\\w)", text, re.IGNORECASE):
-                line = text.count("\n", 0, match.start()) + 1
+                line = bisect_right(line_starts, match.start())
                 context = source_lines[line - 1].strip() if source_lines else ""
                 occurrences.append(
                     {
@@ -140,6 +147,8 @@ def _gestures(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def analyze(data: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        raise TypeError("input must be a JSON object")
     return {"version": 1, "project": PROJECT, **_gestures(data)}
 
 

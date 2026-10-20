@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "repeated-gesture-detector"
-version = "1.2.0"
+version = "1.2.1"
 description = "Flag frequently repeated physical actions using an editable gesture-pattern catalog."
 readme = "README.md"
 requires-python = ">=3.10"

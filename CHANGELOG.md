@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 - 2026-10-20
+
+- Consistent newline evidence and checked input.
+- Return friendly diagnostics for malformed input and refuse existing or linked report targets with exclusive file creation.
+- Added regression tests and documented the exact supported input and source-safety boundaries.
+
 ## 1.2.0 - 2026-10-16
 
 - Added nearby gesture clusters.

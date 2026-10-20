@@ -50,3 +50,9 @@ repeated-gestures examples/feature.json --format json
 ```
 
 `word_index` counts word tokens whose half-open end is at or before the occurrence start. A phrase beginning inside a token uses that token's index; leading punctuation uses the following token's coordinate. A punctuation-only match uses the gap coordinate (zero before the first word, or the total word count after the last). Matches separated only by punctuation or whitespace share a coordinate and may form a zero-window cluster. Thus `(nod) (nod)` has coordinates 0 and 1 and does not cluster with `word_window: 0`.
+
+## Version 1.2.1: consistent newline evidence and checked input
+
+The required `text` must be a non-empty string. `minimum` must be a positive integer (booleans are rejected). Omit `gestures` to use the built-in catalog; an explicitly supplied catalog must be a non-empty object with non-empty string labels and non-empty lists of string phrases. Labels that become identical after trimming are rejected. Source lines, contexts, heading boundaries and occurrence coordinates now use the same Python `splitlines` rules, including CRLF, lone CR and Unicode line separators. Character spans continue to refer to the original unmodified string.
+
+Invalid JSON shapes and option types produce a concise `error:` diagnostic and exit status 2. A report is created exclusively: existing files, directories and symbolic links (including dangling links) are refused, and the input is never overwritten. Output parent directories must already exist. This prevents replacing an existing output leaf; it does not promise protection against hostile concurrent replacement of parent directories.
