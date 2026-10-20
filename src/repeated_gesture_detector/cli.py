@@ -21,6 +21,8 @@ def main(argv: list[str] | None = None) -> int:
         report = analyze(data)
         rendered = render_json(report) if args.format == "json" else render_markdown(report)
         if args.output:
+            if args.output.is_symlink():
+                raise ValueError(f"output is a symbolic link: {args.output}")
             with args.output.open("x", encoding="utf-8") as output:
                 output.write(rendered)
         else:
